@@ -28,3 +28,9 @@ images and text in interesting ways.
 ### TODO
 
 * Move the fun parts out into a separate module for reuse in other projects.
+
+# Handy Links
+
+* [Cosmic Unicorn documentation](https://github.com/pimoroni/pimoroni-pico/blob/main/micropython/modules/cosmic_unicorn/)
+* [Pico Graphics documentation](https://github.com/pimoroni/pimoroni-pico/tree/main/micropython/modules/picographics)
+* [Galactic Unicorn: Multiverse](https://github.com/Gadgetoid/gu-multiverse) (for driving multiple displays from a controller system)
