@@ -17,7 +17,7 @@ graphics.clear()
 # Get the display size
 W, H = graphics.get_bounds()
 
-# Fancy rendering directions
+# Fancy rendering transitions
 LEFT_TO_RIGHT = 1
 TOP_TO_BOTTOM = 2
 RIGHT_TO_LEFT = 3
@@ -67,15 +67,15 @@ def buttons():
 
 
 # Clear the display in various ways
-def clear(mode):
+def clear(transition):
     global brightness
     
-    if mode == IMMEDIATE:
+    if transition == IMMEDIATE:
         graphics.clear()
         cosmic.update(graphics)
         return
     
-    elif mode == FADE:
+    elif transition == FADE:
         for b in interpolate(brightness, 0, 20):
             cosmic.set_brightness(b) 
             cosmic.update(graphics)
@@ -86,20 +86,20 @@ def clear(mode):
         cosmic.update(graphics)
         return        
         
-    elif mode in [LEFT_TO_RIGHT, TOP_TO_BOTTOM]:
+    elif transition in [LEFT_TO_RIGHT, TOP_TO_BOTTOM]:
         x_range = range(0, W - 1)
         y_range = range(0, H - 1)
         
-    elif mode in [RIGHT_TO_LEFT, BOTTOM_TO_TOP]:
+    elif transition in [RIGHT_TO_LEFT, BOTTOM_TO_TOP]:
         x_range = range(W - 1, -1, -1)
         y_range = range(H - 1, -1, -1)
         
     else:
-        raise Exception('Invalid direction specified.')
+        raise Exception('Invalid transition specified.')
 
     for x in x_range:
         for y in y_range:
-            if mode in [LEFT_TO_RIGHT, RIGHT_TO_LEFT]:
+            if transition in [LEFT_TO_RIGHT, RIGHT_TO_LEFT]:
                 graphics.pixel(x, y)
             else:
                 graphics.pixel(y, x)
@@ -110,12 +110,30 @@ def clear(mode):
 
 
 # Draw an image, given a JSON doc of RGB pixel values
-def draw_image(file, mode):
+def draw_image(file, transition):
     f = open(f'images/{file}.json', 'r', encoding='ascii')
     image = json.loads(f.read())
     f.close()
     
-    if mode == IMMEDIATE:
+    if transition == FADE:
+        cosmic.set_brightness(0)
+        graphics.clear()
+        cosmic.update(graphics)
+        
+        for y in range(0, H - 1):
+            for x in range(0, W - 1):
+                colour = graphics.create_pen(image[y][x][0], image[y][x][1], image[y][x][2])
+                graphics.set_pen(colour)
+                graphics.pixel(x, y)
+        
+        for b in interpolate(0, brightness, 20):
+            cosmic.set_brightness(b) 
+            cosmic.update(graphics)
+            time.sleep(0.05)
+            
+        return
+    
+    elif transition == IMMEDIATE:
         for y in range(0, H - 1):
             for x in range(0, W - 1):
                 colour = graphics.create_pen(image[y][x][0], image[y][x][1], image[y][x][2])
@@ -126,18 +144,21 @@ def draw_image(file, mode):
 
         cosmic.update(graphics)
         return
-    elif mode in [LEFT_TO_RIGHT, TOP_TO_BOTTOM]:
+    
+    elif transition in [LEFT_TO_RIGHT, TOP_TO_BOTTOM]:
         x_range = range(0, W - 1)
         y_range = range(0, H - 1)
-    elif mode in [RIGHT_TO_LEFT, BOTTOM_TO_TOP]:
+        
+    elif transition in [RIGHT_TO_LEFT, BOTTOM_TO_TOP]:
         x_range = range(W - 1, -1, -1)
         y_range = range(H - 1, -1, -1)
+        
     else:
-        raise Exception('Invalid direction specified.')
+        raise Exception('Invalid transition specified.')
     
     for x in x_range:
         for y in y_range:
-            if mode in [LEFT_TO_RIGHT, RIGHT_TO_LEFT]:
+            if transition in [LEFT_TO_RIGHT, RIGHT_TO_LEFT]:
                 colour = graphics.create_pen(image[y][x][0], image[y][x][1], image[y][x][2])
                 graphics.set_pen(colour)
                 graphics.pixel(x, y)
@@ -153,8 +174,7 @@ def draw_image(file, mode):
 
 # Render scrolling text, with top and bottom 2-colour borders
 def draw_scrolling_text(text, text_colour, inner_colour, outer_colour):
-    black = graphics.create_pen(0, 0, 0)
-    
+   
     graphics.set_font("bitmap14_outline")
     text_top = int(math.floor(W/2) - (14/2))
     
@@ -176,7 +196,7 @@ def draw_scrolling_text(text, text_colour, inner_colour, outer_colour):
         graphics.set_pen(outer_colour)
         graphics.line(0, H-1, W, H-1)
     
-        graphics.set_pen(black)
+        graphics.set_pen(BLACK)
         
         buttons()
         
@@ -190,7 +210,7 @@ while True:
     time.sleep(2.0)
     clear(LEFT_TO_RIGHT)
 
-    draw_scrolling_text('PGConf.EU 2023', PG_LIGHT_BLUE, PG_BASE_BLUE, PG_DARK_BLUE)
+    draw_scrolling_text('PostgreSQL Conference Europe 2023', PG_LIGHT_BLUE, PG_BASE_BLUE, PG_DARK_BLUE)
     clear(FADE)
 
     draw_image('pgconfeu', TOP_TO_BOTTOM)
@@ -205,5 +225,5 @@ while True:
     time.sleep(2.0)
     clear(BOTTOM_TO_TOP)
 
-    draw_scrolling_text('Prague, Czechia', WHITE, CZ_BLUE, CZ_RED)
+    draw_scrolling_text('Prague, Czech Republic', WHITE, CZ_BLUE, CZ_RED)
     clear(FADE)
