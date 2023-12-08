@@ -11,7 +11,11 @@ grid of RGB values. This allows us to easily render whatever parts of the
 image we want, or to render it pixel by pixel or whatever, to give a nice
 effect.
 
-TODO: Make this into a more usable command line tool!
+### TODO
+
+* Make this into a more usable command line tool
+* Improve the JSON format to save space, perhaps by generating a palette, and
+   referencing entries in that from the pixel matrix.
 
 ## pgconfeu2023/
 
@@ -21,4 +25,6 @@ presentation on the PGEU desk at PostgreSQL Conference Europe 2023.
 The code contains some useful functions for clearing the screen and display
 images and text in interesting ways.
 
-TODO: Move the fun parts out into a separate module for reuse in other projects.
+### TODO
+
+* Move the fun parts out into a separate module for reuse in other projects.
