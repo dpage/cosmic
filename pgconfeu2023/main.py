@@ -49,7 +49,6 @@ def interpolate(start, stop, steps):
 
 
 # Handle button presses
-# TODO: Figure out how to de-bounce
 def buttons():
     global brightness
     
@@ -73,6 +72,7 @@ def clear(transition):
     if transition == IMMEDIATE:
         graphics.clear()
         cosmic.update(graphics)
+        buttons()
         return
     
     elif transition == FADE:
@@ -84,6 +84,7 @@ def clear(transition):
         graphics.clear()
         cosmic.set_brightness(brightness) 
         cosmic.update(graphics)
+        buttons()
         return        
         
     elif transition in [LEFT_TO_RIGHT, TOP_TO_BOTTOM]:
@@ -103,10 +104,9 @@ def clear(transition):
                 graphics.pixel(x, y)
             else:
                 graphics.pixel(y, x)
-            
-            buttons()
 
             cosmic.update(graphics)
+            buttons()
 
 
 # Draw an image, given a JSON doc of RGB pixel values
@@ -129,8 +129,9 @@ def draw_image(file, transition):
         for b in interpolate(0, brightness, 20):
             cosmic.set_brightness(b) 
             cosmic.update(graphics)
+            buttons()
             time.sleep(0.05)
-            
+        
         return
     
     elif transition == IMMEDIATE:
@@ -139,10 +140,9 @@ def draw_image(file, transition):
                 colour = graphics.create_pen(image[y][x][0], image[y][x][1], image[y][x][2])
                 graphics.set_pen(colour)
                 graphics.pixel(x, y)
-                
-        buttons()
 
         cosmic.update(graphics)
+        buttons()
         return
     
     elif transition in [LEFT_TO_RIGHT, TOP_TO_BOTTOM]:
@@ -166,10 +166,9 @@ def draw_image(file, transition):
                 colour = graphics.create_pen(image[x][y][0], image[x][y][1], image[x][y][2])
                 graphics.set_pen(colour)
                 graphics.pixel(y, x)
-                
-            buttons()
 
             cosmic.update(graphics)
+            buttons()
             
 
 # Render scrolling text, with top and bottom 2-colour borders
@@ -198,9 +197,8 @@ def draw_scrolling_text(text, text_colour, inner_colour, outer_colour):
     
         graphics.set_pen(BLACK)
         
-        buttons()
-        
         cosmic.update(graphics)
+        buttons()
         
         time.sleep(0.1)
         
