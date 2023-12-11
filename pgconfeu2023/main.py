@@ -200,7 +200,7 @@ def draw_scrolling_text(text, text_colour, inner_colour, outer_colour):
         cosmic.update(graphics)
         buttons()
         
-        time.sleep(0.1)
+        time.sleep(0.05)
         
 
 while True:
