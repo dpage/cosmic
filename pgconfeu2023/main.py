@@ -51,7 +51,7 @@ def interpolate(start, stop, steps):
 # Handle button presses
 def buttons():
     global brightness
-    
+
     if cosmic.is_pressed(CosmicUnicorn.SWITCH_BRIGHTNESS_UP):
         brightness += 0.01
         brightness = min(brightness, 1.0)
@@ -61,40 +61,42 @@ def buttons():
     if cosmic.is_pressed(CosmicUnicorn.SWITCH_BRIGHTNESS_DOWN):
         brightness -= 0.01
         brightness = max(brightness, 0.0)
-        cosmic.set_brightness(brightness) 
+        cosmic.set_brightness(brightness)
         time.sleep(0.01)
 
 
 # Clear the display in various ways
 def clear(transition):
     global brightness
-    
+
+    graphics.set_pen(BLACK)
+
     if transition == IMMEDIATE:
         graphics.clear()
         cosmic.update(graphics)
         buttons()
         return
-    
+
     elif transition == FADE:
         for b in interpolate(brightness, 0, 20):
-            cosmic.set_brightness(b) 
+            cosmic.set_brightness(b)
             cosmic.update(graphics)
             time.sleep(0.05)
-            
+
         graphics.clear()
-        cosmic.set_brightness(brightness) 
+        cosmic.set_brightness(brightness)
         cosmic.update(graphics)
         buttons()
-        return        
-        
+        return
+
     elif transition in [LEFT_TO_RIGHT, TOP_TO_BOTTOM]:
-        x_range = range(0, W - 1)
-        y_range = range(0, H - 1)
-        
+        x_range = range(0, W)
+        y_range = range(0, H)
+
     elif transition in [RIGHT_TO_LEFT, BOTTOM_TO_TOP]:
         x_range = range(W - 1, -1, -1)
         y_range = range(H - 1, -1, -1)
-        
+
     else:
         raise Exception('Invalid transition specified.')
 
@@ -114,29 +116,29 @@ def draw_image(file, transition):
     f = open(f'images/{file}.json', 'r', encoding='ascii')
     image = json.loads(f.read())
     f.close()
-    
+
     if transition == FADE:
         cosmic.set_brightness(0)
         graphics.clear()
         cosmic.update(graphics)
-        
-        for y in range(0, H - 1):
-            for x in range(0, W - 1):
+
+        for y in range(0, H):
+            for x in range(0, W):
                 colour = graphics.create_pen(image[y][x][0], image[y][x][1], image[y][x][2])
                 graphics.set_pen(colour)
                 graphics.pixel(x, y)
-        
+
         for b in interpolate(0, brightness, 20):
-            cosmic.set_brightness(b) 
+            cosmic.set_brightness(b)
             cosmic.update(graphics)
             buttons()
             time.sleep(0.05)
-        
+
         return
-    
+
     elif transition == IMMEDIATE:
-        for y in range(0, H - 1):
-            for x in range(0, W - 1):
+        for y in range(0, H):
+            for x in range(0, W):
                 colour = graphics.create_pen(image[y][x][0], image[y][x][1], image[y][x][2])
                 graphics.set_pen(colour)
                 graphics.pixel(x, y)
@@ -144,18 +146,18 @@ def draw_image(file, transition):
         cosmic.update(graphics)
         buttons()
         return
-    
+
     elif transition in [LEFT_TO_RIGHT, TOP_TO_BOTTOM]:
-        x_range = range(0, W - 1)
-        y_range = range(0, H - 1)
-        
+        x_range = range(0, W)
+        y_range = range(0, H)
+
     elif transition in [RIGHT_TO_LEFT, BOTTOM_TO_TOP]:
         x_range = range(W - 1, -1, -1)
         y_range = range(H - 1, -1, -1)
-        
+
     else:
         raise Exception('Invalid transition specified.')
-    
+
     for x in x_range:
         for y in y_range:
             if transition in [LEFT_TO_RIGHT, RIGHT_TO_LEFT]:
@@ -169,19 +171,19 @@ def draw_image(file, transition):
 
             cosmic.update(graphics)
             buttons()
-            
+
 
 # Render scrolling text, with top and bottom 2-colour borders
 def draw_scrolling_text(text, text_colour, inner_colour, outer_colour):
-   
+
     graphics.set_font("bitmap14_outline")
     text_top = int(math.floor(W/2) - (14/2))
-    
+
     width = graphics.measure_text(text, scale=1)
-    
+
     for x in range(W, -(width), -1):
         graphics.clear()
-        
+
         graphics.set_pen(outer_colour)
         graphics.line(0, 0, W, 0)
         graphics.set_pen(inner_colour)
@@ -194,14 +196,14 @@ def draw_scrolling_text(text, text_colour, inner_colour, outer_colour):
         graphics.line(0, H-2, W, H-2)
         graphics.set_pen(outer_colour)
         graphics.line(0, H-1, W, H-1)
-    
+
         graphics.set_pen(BLACK)
-        
+
         cosmic.update(graphics)
         buttons()
-        
+
         time.sleep(0.05)
-        
+
 
 while True:
     draw_image('slonik', LEFT_TO_RIGHT)
@@ -214,11 +216,11 @@ while True:
     draw_image('pgconfeu', TOP_TO_BOTTOM)
     time.sleep(2.0)
     clear(TOP_TO_BOTTOM)
-    
-    
+
+
     draw_scrolling_text('The world\'s most advanced database conference', PGCONFEU_LIGHT_BROWN, PGCONFEU_MID_BROWN, PGCONFEU_DARK_BROWN)
     clear(FADE)
-    
+
     draw_image('czech_flag', BOTTOM_TO_TOP)
     time.sleep(2.0)
     clear(BOTTOM_TO_TOP)
