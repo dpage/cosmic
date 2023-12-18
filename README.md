@@ -16,6 +16,10 @@ pixel by pixel or whatever, to give a nice effect.
 * Improve the JSON format to save space, perhaps by generating a palette, and
    referencing entries in that from the pixel matrix.
 
+## christmas/
+
+A Christmas display. Somewhat specific to me, as it mentions our cat.
+
 ## pgconfeu2023/
 
 This directory contains the MicroPython code and JSON formatted images for 
