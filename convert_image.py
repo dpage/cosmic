@@ -31,6 +31,7 @@ def convert_image(filename):
     raw = Image.open(os.path.join(FOLDER, filename), mode='r')
     raw = remove_transparency(raw, (0, 0, 0))
     raw = raw.convert('RGB', colors=8)
+    raw.thumbnail((32, 32))
 
     image = np.array(raw)
 
