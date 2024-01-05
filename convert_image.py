@@ -2,8 +2,9 @@ from PIL import Image
 import numpy as np
 import json
 import os
+import sys
 
-FOLDER = 'christmas/images'
+FOLDER = sys.argv[1]
 
 
 # From: https://stackoverflow.com/a/35859141
