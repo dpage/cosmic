@@ -1,6 +1,6 @@
 import json
 import random
-import json 
+import json
 import math
 import network
 import time
@@ -46,6 +46,7 @@ WHITE = graphics.create_pen(255, 255, 255)
 RED = graphics.create_pen(255, 0, 0)
 GREEN = graphics.create_pen(0, 255, 0)
 BLUE = graphics.create_pen(0, 0, 255)
+PURPLE = graphics.create_pen(143, 0, 255)
 
 
 def start_wifi():
@@ -65,6 +66,7 @@ def start_wifi():
                                                                           wlan.ifconfig()[2],
                                                                           wlan.ifconfig()[3]))
 
+
 def get_weather():
     url = 'https://weatherapi-com.p.rapidapi.com/current.json?q={}'.format(secrets.LOCATION)
 
@@ -74,12 +76,12 @@ def get_weather():
     }
 
     response = urequests.get(url, headers=headers)
-        
+
     res = json.loads(response.text)
     response.close()
 
     return res
-    
+
 
 # Get a random transition
 def random_transition():
@@ -247,17 +249,27 @@ def draw_scrolling_text_with_borders(text, text_colour, inner_colour, outer_colo
         buttons()
 
         time.sleep(0.05)
-        
-        
+
+
 # Render scrolling text, with a 16x16 icon at the top
-def draw_scrolling_text_with_icon(text, text_colour):
+def draw_scrolling_text_with_icon(text, text_colour, icon):
     graphics.set_font("bitmap14_outline")
     text_top = H - 14
 
     width = graphics.measure_text(text, scale=1)
 
+    f = open(f'icons/{icon}.json', 'r', encoding='ascii')
+    image = json.loads(f.read())
+    f.close()
+
     for x in range(W, -(width), -1):
         graphics.clear()
+
+        for iy in range(0, 16):
+            for ix in range(0, 16):
+                colour = graphics.create_pen(image[iy][ix][0], image[iy][ix][1], image[iy][ix][2])
+                graphics.set_pen(colour)
+                graphics.pixel(ix + math.floor(W / 4), iy)
 
         graphics.set_pen(text_colour)
         graphics.text(text, x, text_top, scale=1)
@@ -269,22 +281,22 @@ def draw_scrolling_text_with_icon(text, text_colour):
 
         time.sleep(0.05)
 
-    
+
 def main():
     start_wifi()
-    print(socket.getaddrinfo('www.google.com', 80, 0, socket.SOCK_STREAM))
+
     last_weather = 0;
-    
+
     while True:
         draw_image('slonik', random_transition())
-        
+
         # Get the weather, or sleep while displaying the first image
         if time.time() > last_weather + 300:
             weather = get_weather()
             last_weather = time.time()
         else:
             time.sleep(2.0)
-            
+
         clear(random_transition())
 
         draw_scrolling_text_with_borders('PostgreSQL', PG_LIGHT_BLUE, PG_BASE_BLUE, PG_DARK_BLUE)
@@ -296,20 +308,21 @@ def main():
 
         draw_scrolling_text_with_borders('TenaciousDD', TDD_BASE_GREEN, TDD_LIGHT_GREEN, TDD_DARK_GREEN)
         clear(FADE)
-        
+
         draw_scrolling_text_with_icon('Temperature: {}C, feels like: {}C'.format(
             weather['current']['temp_c'],
             weather['current']['feelslike_c']),
-            RED)
+            PURPLE, 'temperature')
         clear(FADE)
-        
-        draw_scrolling_text_with_icon('Wind: {}MPH ({}), gust: {}MPH'.format(
+
+        draw_scrolling_text_with_icon('Wind: {}MPH {}, gust: {}MPH'.format(
             weather['current']['wind_mph'],
             weather['current']['wind_dir'],
             weather['current']['gust_mph']),
-            GREEN)
+            GREEN, 'wind')
         clear(FADE)
 
 
 if __name__ == '__main__':
     main()
+
