@@ -217,60 +217,60 @@ while True:
     clear(random_transition())
 
     draw_scrolling_text('\'tis the season to be jolly.', GOLD, RED, GREEN)
-    clear(random_transition())
+    clear(FADE)
 
     draw_image('santa-hat', random_transition())
     time.sleep(2.0)
     clear(random_transition())
     
     draw_scrolling_text('Ho Ho Ho!', GOLD, RED, GREEN)
-    clear(random_transition())
+    clear(FADE)
 
     draw_image('snow-man', random_transition())
     time.sleep(2.0)
     clear(random_transition())
     
     draw_scrolling_text('It\'s beginning to look a lot like Christmas!', GOLD, RED, GREEN)
-    clear(random_transition())
+    clear(FADE)
     
     draw_image('bells', random_transition())
     time.sleep(2.0)
     clear(random_transition())
     
     draw_scrolling_text('Jingle bells, jingle bells, jingle all the way...', GOLD, RED, GREEN)
-    clear(random_transition())
+    clear(FADE)
     
     draw_image('bauble', random_transition())
     time.sleep(2.0)
     clear(random_transition())
     
     draw_scrolling_text('If that fell off, #BLAMERAVEN', GOLD, RED, GREEN)
-    clear(random_transition())
+    clear(FADE)
     
     draw_image('present', random_transition())
     time.sleep(2.0)
     clear(random_transition())
     
     draw_scrolling_text('Go on, give it a shake!', GOLD, RED, GREEN)
-    clear(random_transition())
+    clear(FADE)
     
     draw_image('star', random_transition())
     time.sleep(2.0)
     clear(random_transition())
     
     draw_scrolling_text('Twinkle twinkle little star.', GOLD, RED, GREEN)
-    clear(random_transition())
+    clear(FADE)
 
     draw_image('stocking', random_transition())
     time.sleep(2.0)
     clear(random_transition())
     
     draw_scrolling_text('Here comes Santa Claus...', GOLD, RED, GREEN)
-    clear(random_transition())
+    clear(FADE)
     
     draw_image('tree', random_transition())
     time.sleep(2.0)
     clear(random_transition())
     
     draw_scrolling_text('If the tree\'s a-rockin\', where\'s Raven?', GOLD, RED, GREEN)
-    clear(random_transition())
+    clear(FADE)
