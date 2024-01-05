@@ -1,10 +1,16 @@
 import json
 import random
-import time
-import machine
+import json 
 import math
+import network
+import time
+import urequests
+import _thread
 from cosmic import CosmicUnicorn
 from picographics import PicoGraphics, DISPLAY_COSMIC_UNICORN as DISPLAY
+import socket
+
+import secrets
 
 # Create Cosmic object and graphics surface for drawing
 cosmic = CosmicUnicorn()
@@ -37,7 +43,43 @@ TDD_LIGHT_GREEN = graphics.create_pen(95, 215, 162)
 
 BLACK = graphics.create_pen(0, 0, 0)
 WHITE = graphics.create_pen(255, 255, 255)
+RED = graphics.create_pen(255, 0, 0)
+GREEN = graphics.create_pen(0, 255, 0)
+BLUE = graphics.create_pen(0, 0, 255)
 
+
+def start_wifi():
+    if secrets.WIFI_SSID is None or secrets.WIFI_PASS is None:
+        raise RuntimeError("WiFi SSID/PASS required. Set them in secrets.py and copy it to your Pico")
+
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    wlan.connect(secrets.WIFI_SSID, secrets.WIFI_PASS)
+    while wlan.isconnected() == False:
+        print('Waiting for connection...')
+        time.sleep(1.0)
+
+    print('Connected to {}; IP: {}, mask: {}, router: {}, DNS: {}'.format(secrets.WIFI_SSID,
+                                                                          wlan.ifconfig()[0],
+                                                                          wlan.ifconfig()[1],
+                                                                          wlan.ifconfig()[2],
+                                                                          wlan.ifconfig()[3]))
+
+def get_weather():
+    url = 'https://weatherapi-com.p.rapidapi.com/current.json?q={}'.format(secrets.LOCATION)
+
+    headers = {
+        "X-RapidAPI-Key": secrets.RAPIDAPI_KEY,
+        "X-RapidAPI-Host": "weatherapi-com.p.rapidapi.com"
+    }
+
+    response = urequests.get(url, headers=headers)
+        
+    res = json.loads(response.text)
+    response.close()
+
+    return res
+    
 
 # Get a random transition
 def random_transition():
@@ -177,7 +219,7 @@ def draw_image(file, transition):
 
 
 # Render scrolling text, with top and bottom 2-colour borders
-def draw_scrolling_text(text, text_colour, inner_colour, outer_colour):
+def draw_scrolling_text_with_borders(text, text_colour, inner_colour, outer_colour):
     graphics.set_font("bitmap14_outline")
     text_top = int(math.floor(W / 2) - (14 / 2))
 
@@ -205,19 +247,69 @@ def draw_scrolling_text(text, text_colour, inner_colour, outer_colour):
         buttons()
 
         time.sleep(0.05)
+        
+        
+# Render scrolling text, with a 16x16 icon at the top
+def draw_scrolling_text_with_icon(text, text_colour):
+    graphics.set_font("bitmap14_outline")
+    text_top = H - 14
 
+    width = graphics.measure_text(text, scale=1)
 
-while True:
-    draw_image('slonik', random_transition())
-    time.sleep(2.0)
-    clear(random_transition())
+    for x in range(W, -(width), -1):
+        graphics.clear()
 
-    draw_scrolling_text('PostgreSQL', PG_LIGHT_BLUE, PG_BASE_BLUE, PG_DARK_BLUE)
-    clear(FADE)
+        graphics.set_pen(text_colour)
+        graphics.text(text, x, text_top, scale=1)
+
+        graphics.set_pen(BLACK)
+
+        cosmic.update(graphics)
+        buttons()
+
+        time.sleep(0.05)
+
     
-    draw_image('pod', random_transition())
-    time.sleep(2.0)
-    clear(random_transition())
+def main():
+    start_wifi()
+    print(socket.getaddrinfo('www.google.com', 80, 0, socket.SOCK_STREAM))
+    last_weather = 0;
     
-    draw_scrolling_text('TenaciousDD', TDD_BASE_GREEN, TDD_LIGHT_GREEN, TDD_DARK_GREEN)
-    clear(FADE)
+    while True:
+        draw_image('slonik', random_transition())
+        
+        # Get the weather, or sleep while displaying the first image
+        if time.time() > last_weather + 300:
+            weather = get_weather()
+            last_weather = time.time()
+        else:
+            time.sleep(2.0)
+            
+        clear(random_transition())
+
+        draw_scrolling_text_with_borders('PostgreSQL', PG_LIGHT_BLUE, PG_BASE_BLUE, PG_DARK_BLUE)
+        clear(FADE)
+
+        draw_image('pod', random_transition())
+        time.sleep(2.0)
+        clear(random_transition())
+
+        draw_scrolling_text_with_borders('TenaciousDD', TDD_BASE_GREEN, TDD_LIGHT_GREEN, TDD_DARK_GREEN)
+        clear(FADE)
+        
+        draw_scrolling_text_with_icon('Temperature: {}C, feels like: {}C'.format(
+            weather['current']['temp_c'],
+            weather['current']['feelslike_c']),
+            RED)
+        clear(FADE)
+        
+        draw_scrolling_text_with_icon('Wind: {}MPH ({}), gust: {}MPH'.format(
+            weather['current']['wind_mph'],
+            weather['current']['wind_dir'],
+            weather['current']['gust_mph']),
+            GREEN)
+        clear(FADE)
+
+
+if __name__ == '__main__':
+    main()
