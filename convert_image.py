@@ -5,7 +5,7 @@ import os
 import sys
 
 FOLDER = sys.argv[1]
-
+SIZE = int(sys.argv[2])
 
 # From: https://stackoverflow.com/a/35859141
 def remove_transparency(im, bg_colour=(255, 255, 255)):
@@ -31,7 +31,7 @@ def convert_image(filename):
     raw = Image.open(os.path.join(FOLDER, filename), mode='r')
     raw = remove_transparency(raw, (0, 0, 0))
     raw = raw.convert('RGB', colors=8)
-    raw.thumbnail((32, 32))
+    raw.thumbnail((SIZE, SIZE))
 
     image = np.array(raw)
 
