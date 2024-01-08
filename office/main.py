@@ -61,7 +61,7 @@ def start_wifi():
         print('Waiting for connection...')
         time.sleep(1.0)
 
-    print('Connected to {}; IP: {}, mask: {}, router: {}, DNS: {}'.format(secrets.WIFI_SSID,
+    return('Connected to {}; IP: {}, mask: {}, router: {}, DNS: {}'.format(secrets.WIFI_SSID,
                                                                           wlan.ifconfig()[0],
                                                                           wlan.ifconfig()[1],
                                                                           wlan.ifconfig()[2],
@@ -293,7 +293,18 @@ def draw_scrolling_text_with_icon(text, text_colour, icon):
 
     
 def main():
-    start_wifi()
+    graphics.set_font("bitmap6")
+    graphics.set_pen(PURPLE)
+    graphics.text('WLAN:', 0, 0, scale=1)
+
+    graphics.set_pen(ORANGE)
+    graphics.text(secrets.WIFI_SSID, 0, 8, scale=1)
+    cosmic.update(graphics)
+    
+    conninfo = start_wifi()
+    
+    draw_scrolling_text_with_borders(conninfo, PURPLE, ORANGE, ORANGE)
+    clear(FADE)
 
     last_weather = 0;
     
