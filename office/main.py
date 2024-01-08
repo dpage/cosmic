@@ -1,6 +1,6 @@
 import json
 import random
-import json
+import json 
 import math
 import network
 import time
@@ -47,6 +47,7 @@ RED = graphics.create_pen(255, 0, 0)
 GREEN = graphics.create_pen(0, 255, 0)
 BLUE = graphics.create_pen(0, 0, 255)
 PURPLE = graphics.create_pen(143, 0, 255)
+ORANGE = graphics.create_pen(255, 165, 0)
 
 
 def start_wifi():
@@ -66,7 +67,6 @@ def start_wifi():
                                                                           wlan.ifconfig()[2],
                                                                           wlan.ifconfig()[3]))
 
-
 def get_weather():
     url = 'https://weatherapi-com.p.rapidapi.com/current.json?q={}'.format(secrets.LOCATION)
 
@@ -76,13 +76,23 @@ def get_weather():
     }
 
     response = urequests.get(url, headers=headers)
-
+        
     res = json.loads(response.text)
     response.close()
 
     return res
 
 
+def get_weather_icon(url, is_day):
+    file = url.split('/')[-1]
+    file = file.split('.')[0]
+    
+    if is_day == 1:
+        return 'day/{}'.format(file)
+    else:
+        return 'night/{}'.format(file)
+    
+    
 # Get a random transition
 def random_transition():
     return random.randint(1, 6)
@@ -249,8 +259,8 @@ def draw_scrolling_text_with_borders(text, text_colour, inner_colour, outer_colo
         buttons()
 
         time.sleep(0.05)
-
-
+        
+        
 # Render scrolling text, with a 16x16 icon at the top
 def draw_scrolling_text_with_icon(text, text_colour, icon):
     graphics.set_font("bitmap14_outline")
@@ -261,10 +271,10 @@ def draw_scrolling_text_with_icon(text, text_colour, icon):
     f = open(f'icons/{icon}.json', 'r', encoding='ascii')
     image = json.loads(f.read())
     f.close()
-
+    
     for x in range(W, -(width), -1):
         graphics.clear()
-
+        
         for iy in range(0, 16):
             for ix in range(0, 16):
                 colour = graphics.create_pen(image[iy][ix][0], image[iy][ix][1], image[iy][ix][2])
@@ -281,25 +291,51 @@ def draw_scrolling_text_with_icon(text, text_colour, icon):
 
         time.sleep(0.05)
 
-
+    
 def main():
     start_wifi()
 
     last_weather = 0;
-
+    
     while True:
         draw_image('slonik', random_transition())
-
+        
         # Get the weather, or sleep while displaying the first image
         if time.time() > last_weather + 300:
             weather = get_weather()
             last_weather = time.time()
         else:
             time.sleep(2.0)
-
+            
         clear(random_transition())
 
         draw_scrolling_text_with_borders('PostgreSQL', PG_LIGHT_BLUE, PG_BASE_BLUE, PG_DARK_BLUE)
+        clear(FADE)
+        
+        # General Weather
+        draw_scrolling_text_with_icon('Weather for {}: {}'.format(
+            weather['location']['name'],
+            weather['current']['condition']['text']),
+            ORANGE, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
+
+        # Temperature
+        draw_scrolling_text_with_icon('Temperature: {}C, feels like: {}C'.format(
+            weather['current']['temp_c'],
+            weather['current']['feelslike_c']),
+            PURPLE, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
+        
+        # Wind
+        draw_scrolling_text_with_icon('Wind: {}MPH {}, gusts: {}MPH'.format(
+            weather['current']['wind_mph'],
+            weather['current']['wind_dir'],
+            weather['current']['gust_mph']),
+            GREEN, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
+        
+        # Precipitation
+        draw_scrolling_text_with_icon('Precipitation: {}mm, UV: {}'.format(
+            weather['current']['precip_mm'],
+            weather['current']['uv']),
+            BLUE, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
         clear(FADE)
 
         draw_image('pod', random_transition())
@@ -309,20 +345,8 @@ def main():
         draw_scrolling_text_with_borders('TenaciousDD', TDD_BASE_GREEN, TDD_LIGHT_GREEN, TDD_DARK_GREEN)
         clear(FADE)
 
-        draw_scrolling_text_with_icon('Temperature: {}C, feels like: {}C'.format(
-            weather['current']['temp_c'],
-            weather['current']['feelslike_c']),
-            PURPLE, 'temperature')
-        clear(FADE)
 
-        draw_scrolling_text_with_icon('Wind: {}MPH {}, gust: {}MPH'.format(
-            weather['current']['wind_mph'],
-            weather['current']['wind_dir'],
-            weather['current']['gust_mph']),
-            GREEN, 'wind')
-        clear(FADE)
 
 
 if __name__ == '__main__':
     main()
-

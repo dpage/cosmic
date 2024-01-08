@@ -28,6 +28,13 @@ presentation on the PGEU desk at PostgreSQL Conference Europe 2023.
 The code contains some useful functions for clearing the screen and display
 images and text in interesting ways.
 
+## office/
+
+This directory contains the MicroPython code and JSON formatted images for 
+presentation on a day to day basis in my office.
+
+This code uses the weather icons and free API from https://www.weatherapi.com/.
+
 ### TODO
 
 * Move the fun parts out into a separate module for reuse in other projects.
