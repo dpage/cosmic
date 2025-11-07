@@ -39,6 +39,24 @@ This code uses the weather icons and free API from https://www.weatherapi.com/.
 
 * Move the fun parts out into a separate module for reuse in other projects.
 
+## emulator/
+
+A terminal-based emulator for the Cosmic Unicorn that allows you to test and debug your applications without the physical hardware. The emulator displays a 32x32 pixel grid in your terminal using true-color (24-bit RGB) and mocks all the hardware modules.
+
+**Quick start:**
+```bash
+# Run the default test/demo (no API keys required)
+python3 emulator/run_emulator.py
+
+# Run the office display
+python3 emulator/run_emulator.py office/
+
+# Run the Christmas display
+python3 emulator/run_emulator.py christmas/
+```
+
+For full documentation, see [emulator/README.md](emulator/README.md).
+
 # Handy Links
 
 * [Cosmic Unicorn documentation](https://github.com/pimoroni/pimoroni-pico/blob/main/micropython/modules/cosmic_unicorn/)
