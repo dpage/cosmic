@@ -6,7 +6,9 @@ class TerminalRenderer:
     def __init__(self, graphics):
         self.graphics = graphics
         self.last_render_time = 0
-        self.min_frame_time = 0.033  # ~30 FPS max
+        # Slower frame time to simulate Raspberry Pi Pico + LED matrix update speed
+        # Real hardware is much slower than host machine
+        self.min_frame_time = 0.016  # ~60 FPS max (still faster than real hardware in transitions)
 
     def rgb_to_ansi256(self, r, g, b):
         """Convert RGB to ANSI 256 color code"""
@@ -34,11 +36,15 @@ class TerminalRenderer:
         Args:
             use_truecolor: If True, use 24-bit RGB colors. If False, use ANSI 256 colors.
         """
-        # Throttle rendering
+        # Throttle rendering and simulate hardware speed
         current_time = time.time()
         if current_time - self.last_render_time < self.min_frame_time:
             return
         self.last_render_time = current_time
+
+        # Add delay to simulate slower hardware update speed
+        # Real Raspberry Pi Pico + LED matrix is much slower than host machine
+        time.sleep(0.008)  # ~8ms per frame to simulate hardware delay
 
         # Move cursor to home position
         print('\033[H', end='')
