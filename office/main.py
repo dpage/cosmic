@@ -41,6 +41,10 @@ TDD_DARK_GREEN = graphics.create_pen(28, 119, 62)
 TDD_BASE_GREEN = graphics.create_pen(39, 190, 107)
 TDD_LIGHT_GREEN = graphics.create_pen(95, 215, 162)
 
+PGE_DARK_TEAL = graphics.create_pen(0, 100, 120)
+PGE_BASE_TEAL = graphics.create_pen(0, 150, 180)
+PGE_LIGHT_TEAL = graphics.create_pen(64, 224, 208)
+
 BLACK = graphics.create_pen(0, 0, 0)
 WHITE = graphics.create_pen(255, 255, 255)
 RED = graphics.create_pen(255, 0, 0)
@@ -57,17 +61,57 @@ def start_wifi():
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     wlan.connect(secrets.WIFI_SSID, secrets.WIFI_PASS)
-    while wlan.isconnected() == False:
+
+    # Wait for connection with timeout
+    max_wait = 30
+    while max_wait > 0 and not wlan.isconnected():
         print('Waiting for connection...')
         time.sleep(1.0)
+        max_wait -= 1
 
-    return('Connected to {}; IP: {}, mask: {}, router: {}, DNS: {}'.format(secrets.WIFI_SSID,
-                                                                          wlan.ifconfig()[0],
-                                                                          wlan.ifconfig()[1],
-                                                                          wlan.ifconfig()[2],
-                                                                          wlan.ifconfig()[3]))
+    if not wlan.isconnected():
+        raise RuntimeError("Failed to connect to WiFi")
 
-def get_weather():
+    conninfo = 'Connected to {}; IP: {}, mask: {}, router: {}, DNS: {}'.format(
+        secrets.WIFI_SSID,
+        wlan.ifconfig()[0],
+        wlan.ifconfig()[1],
+        wlan.ifconfig()[2],
+        wlan.ifconfig()[3])
+
+    return wlan, conninfo
+
+
+def check_and_reconnect_wifi(wlan):
+    """Check WiFi connection and reconnect if needed"""
+    if not wlan.isconnected():
+        print('WiFi disconnected, attempting to reconnect...')
+        try:
+            wlan.connect(secrets.WIFI_SSID, secrets.WIFI_PASS)
+            max_wait = 30
+            while max_wait > 0 and not wlan.isconnected():
+                print('Waiting for reconnection...')
+                time.sleep(1.0)
+                max_wait -= 1
+
+            if wlan.isconnected():
+                print('WiFi reconnected successfully')
+                return True
+            else:
+                print('Failed to reconnect to WiFi')
+                return False
+        except Exception as e:
+            print('WiFi reconnection error:', e)
+            return False
+    return True
+
+def get_weather(wlan):
+    """Fetch weather data with proper error handling and timeout"""
+    # Check WiFi connection first
+    if not check_and_reconnect_wifi(wlan):
+        print('Cannot get weather: WiFi not connected')
+        return None
+
     url = 'https://weatherapi-com.p.rapidapi.com/current.json?q={}'.format(secrets.LOCATION)
 
     headers = {
@@ -75,12 +119,26 @@ def get_weather():
         "X-RapidAPI-Host": "weatherapi-com.p.rapidapi.com"
     }
 
-    response = urequests.get(url, headers=headers)
-        
-    res = json.loads(response.text)
-    response.close()
+    try:
+        # Make request with timeout
+        response = urequests.get(url, headers=headers, timeout=10)
 
-    return res
+        if response.status_code != 200:
+            print('Weather API returned status:', response.status_code)
+            response.close()
+            return None
+
+        res = json.loads(response.text)
+        response.close()
+        print('Weather data fetched successfully')
+        return res
+
+    except OSError as e:
+        print('Network error getting weather:', e)
+        return None
+    except Exception as e:
+        print('Error getting weather:', e)
+        return None
 
 
 def get_weather_icon(url, is_day):
@@ -300,53 +358,76 @@ def main():
     graphics.set_pen(ORANGE)
     graphics.text(secrets.WIFI_SSID, 0, 8, scale=1)
     cosmic.update(graphics)
-    
-    conninfo = start_wifi()
-    
+
+    wlan, conninfo = start_wifi()
+
     draw_scrolling_text_with_borders(conninfo, PURPLE, ORANGE, ORANGE)
     clear(FADE)
 
-    last_weather = 0;
-    
+    last_weather = 0
+    weather = None  # Initialize weather to None
+
     while True:
         draw_image('slonik', random_transition())
-        
+
         # Get the weather, or sleep while displaying the first image
         if time.time() > last_weather + 300:
-            weather = get_weather()
-            last_weather = time.time()
+            new_weather = get_weather(wlan)
+            if new_weather is not None:
+                weather = new_weather  # Update only if successful
+                last_weather = time.time()
+            else:
+                print('Failed to get weather, will retry later')
+                # Still update last_weather to avoid hammering the API
+                last_weather = time.time()
         else:
             time.sleep(2.0)
-            
+
         clear(random_transition())
 
         draw_scrolling_text_with_borders('PostgreSQL', PG_LIGHT_BLUE, PG_BASE_BLUE, PG_DARK_BLUE)
         clear(FADE)
-        
-        # General Weather
-        draw_scrolling_text_with_icon('Weather for {}: {}'.format(
-            weather['location']['name'],
-            weather['current']['condition']['text']),
-            ORANGE, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
 
-        # Temperature
-        draw_scrolling_text_with_icon('Temperature: {}C, feels like: {}C'.format(
-            weather['current']['temp_c'],
-            weather['current']['feelslike_c']),
-            PURPLE, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
-        
-        # Wind
-        draw_scrolling_text_with_icon('Wind: {}MPH {}, gusts: {}MPH'.format(
-            weather['current']['wind_mph'],
-            weather['current']['wind_dir'],
-            weather['current']['gust_mph']),
-            GREEN, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
-        
-        # Precipitation
-        draw_scrolling_text_with_icon('Precipitation: {}mm, UV: {}'.format(
-            weather['current']['precip_mm'],
-            weather['current']['uv']),
-            BLUE, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
+        # Only display weather if we have valid data
+        if weather is not None:
+            try:
+                # General Weather
+                draw_scrolling_text_with_icon('Weather for {}: {}'.format(
+                    weather['location']['name'],
+                    weather['current']['condition']['text']),
+                    ORANGE, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
+
+                # Temperature
+                draw_scrolling_text_with_icon('Temperature: {}C, feels like: {}C'.format(
+                    weather['current']['temp_c'],
+                    weather['current']['feelslike_c']),
+                    PURPLE, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
+
+                # Wind
+                draw_scrolling_text_with_icon('Wind: {}MPH {}, gusts: {}MPH'.format(
+                    weather['current']['wind_mph'],
+                    weather['current']['wind_dir'],
+                    weather['current']['gust_mph']),
+                    GREEN, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
+
+                # Precipitation
+                draw_scrolling_text_with_icon('Precipitation: {}mm, UV: {}'.format(
+                    weather['current']['precip_mm'],
+                    weather['current']['uv']),
+                    BLUE, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
+                clear(FADE)
+            except Exception as e:
+                print('Error displaying weather:', e)
+                # Continue with the loop even if weather display fails
+        else:
+            # No weather data available yet, skip weather display
+            print('No weather data available, skipping weather display')
+
+        draw_image('pgedge', random_transition())
+        time.sleep(2.0)
+        clear(random_transition())
+
+        draw_scrolling_text_with_borders('pgEdge', PGE_LIGHT_TEAL, PGE_BASE_TEAL, PGE_DARK_TEAL)
         clear(FADE)
 
         draw_image('pod', random_transition())
