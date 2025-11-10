@@ -1,11 +1,12 @@
 import json
 import random
-import json 
+import json
 import math
 import network
 import time
 import urequests
 import _thread
+import gc
 from cosmic import CosmicUnicorn
 from picographics import PicoGraphics, DISPLAY_COSMIC_UNICORN as DISPLAY
 import socket
@@ -228,9 +229,16 @@ def clear(transition):
 
 # Draw an image, given a JSON doc of RGB pixel values
 def draw_image(file, transition):
-    f = open(f'images/{file}.json', 'r', encoding='ascii')
-    image = json.loads(f.read())
-    f.close()
+    try:
+        f = open(f'images/{file}.json', 'r', encoding='ascii')
+        image = json.loads(f.read())
+        f.close()
+    except Exception as e:
+        print(f'Error loading image {file}:', e)
+        return  # Skip drawing if image fails to load
+
+    # Clean up memory after loading JSON
+    gc.collect()
 
     if transition == FADE:
         cosmic.set_brightness(0)
@@ -326,10 +334,17 @@ def draw_scrolling_text_with_icon(text, text_colour, icon):
 
     width = graphics.measure_text(text, scale=1)
 
-    f = open(f'icons/{icon}.json', 'r', encoding='ascii')
-    image = json.loads(f.read())
-    f.close()
-    
+    try:
+        f = open(f'icons/{icon}.json', 'r', encoding='ascii')
+        image = json.loads(f.read())
+        f.close()
+    except Exception as e:
+        print(f'Error loading icon {icon}:', e)
+        return  # Skip drawing if icon fails to load
+
+    # Clean up memory after loading JSON
+    gc.collect()
+
     for x in range(W, -(width), -1):
         graphics.clear()
         
@@ -422,6 +437,9 @@ def main():
         else:
             # No weather data available yet, skip weather display
             print('No weather data available, skipping weather display')
+
+        # Clean up memory after weather display
+        gc.collect()
 
         draw_image('pgedge', random_transition())
         time.sleep(2.0)
