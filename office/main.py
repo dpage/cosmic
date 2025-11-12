@@ -55,6 +55,9 @@ BLUE = graphics.create_pen(0, 0, 255)
 PURPLE = graphics.create_pen(143, 0, 255)
 ORANGE = graphics.create_pen(255, 165, 0)
 
+# Global watchdog reference (initialized in main())
+wdt = None
+
 
 def start_wifi():
     if secrets.WIFI_SSID is None or secrets.WIFI_PASS is None:
@@ -70,6 +73,9 @@ def start_wifi():
         print('Waiting for connection...')
         time.sleep(1.0)
         max_wait -= 1
+        # Feed watchdog during WiFi connection wait
+        if wdt is not None and max_wait % 5 == 0:  # Feed every 5 seconds
+            wdt.feed()
 
     if not wlan.isconnected():
         raise RuntimeError("Failed to connect to WiFi")
@@ -95,6 +101,9 @@ def check_and_reconnect_wifi(wlan):
                 print('Waiting for reconnection...')
                 time.sleep(1.0)
                 max_wait -= 1
+                # Feed watchdog during WiFi reconnection wait
+                if wdt is not None and max_wait % 5 == 0:  # Feed every 5 seconds
+                    wdt.feed()
 
             if wlan.isconnected():
                 print('WiFi reconnected successfully')
@@ -114,6 +123,10 @@ def get_weather(wlan):
         print('Cannot get weather: WiFi not connected')
         return None
 
+    # Feed watchdog before potentially long network operation
+    if wdt is not None:
+        wdt.feed()
+
     url = 'https://weatherapi-com.p.rapidapi.com/current.json?q={}'.format(secrets.LOCATION)
 
     headers = {
@@ -122,8 +135,8 @@ def get_weather(wlan):
     }
 
     try:
-        # Make request with timeout
-        response = urequests.get(url, headers=headers, timeout=10)
+        # Make request with timeout (keep under watchdog timeout of 8s)
+        response = urequests.get(url, headers=headers, timeout=7)
 
         if response.status_code != 200:
             print('Weather API returned status:', response.status_code)
@@ -227,6 +240,10 @@ def clear(transition):
             cosmic.update(graphics)
             buttons()
 
+        # Feed watchdog every column to prevent timeout during long transitions
+        if wdt is not None and x % 4 == 0:  # Feed every 4 columns
+            wdt.feed()
+
 
 # Draw an image, given a JSON doc of RGB pixel values
 def draw_image(file, transition):
@@ -296,6 +313,10 @@ def draw_image(file, transition):
             cosmic.update(graphics)
             buttons()
 
+        # Feed watchdog every column to prevent timeout during long transitions
+        if wdt is not None and x % 4 == 0:  # Feed every 4 columns
+            wdt.feed()
+
 
 # Render scrolling text, with top and bottom 2-colour borders
 def draw_scrolling_text_with_borders(text, text_colour, inner_colour, outer_colour):
@@ -304,6 +325,7 @@ def draw_scrolling_text_with_borders(text, text_colour, inner_colour, outer_colo
 
     width = graphics.measure_text(text, scale=1)
 
+    scroll_count = 0
     for x in range(W, -(width), -1):
         graphics.clear()
 
@@ -326,6 +348,11 @@ def draw_scrolling_text_with_borders(text, text_colour, inner_colour, outer_colo
         buttons()
 
         time.sleep(0.05)
+
+        # Feed watchdog periodically during long scrolling text
+        scroll_count += 1
+        if wdt is not None and scroll_count % 50 == 0:  # Feed every 50 frames (~2.5 seconds)
+            wdt.feed()
         
         
 # Render scrolling text, with a 16x16 icon at the top
@@ -346,9 +373,10 @@ def draw_scrolling_text_with_icon(text, text_colour, icon):
     # Clean up memory after loading JSON
     gc.collect()
 
+    scroll_count = 0
     for x in range(W, -(width), -1):
         graphics.clear()
-        
+
         for iy in range(0, 16):
             for ix in range(0, 16):
                 colour = graphics.create_pen(image[iy][ix][0], image[iy][ix][1], image[iy][ix][2])
@@ -365,12 +393,20 @@ def draw_scrolling_text_with_icon(text, text_colour, icon):
 
         time.sleep(0.05)
 
+        # Feed watchdog periodically during long scrolling text
+        scroll_count += 1
+        if wdt is not None and scroll_count % 50 == 0:  # Feed every 50 frames (~2.5 seconds)
+            wdt.feed()
+
     
 def main():
-    # Initialize watchdog timer - will reset the Pico if not fed within 30 seconds
+    global wdt
+
+    # Initialize watchdog timer - will reset the Pico if not fed within 8 seconds
     # This prevents the display from hanging indefinitely
-    wdt = machine.WDT(timeout=30000)  # 30 second timeout
-    print('Watchdog timer initialized (30s timeout)')
+    # Note: RP2040 WDT max timeout is ~8388ms (8.3 seconds)
+    wdt = machine.WDT(timeout=8000)  # 8 second timeout
+    print('Watchdog timer initialized (8s timeout)')
 
     graphics.set_font("bitmap6")
     graphics.set_pen(PURPLE)
