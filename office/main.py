@@ -7,6 +7,7 @@ import time
 import urequests
 import _thread
 import gc
+import machine
 from cosmic import CosmicUnicorn
 from picographics import PicoGraphics, DISPLAY_COSMIC_UNICORN as DISPLAY
 import socket
@@ -366,6 +367,11 @@ def draw_scrolling_text_with_icon(text, text_colour, icon):
 
     
 def main():
+    # Initialize watchdog timer - will reset the Pico if not fed within 30 seconds
+    # This prevents the display from hanging indefinitely
+    wdt = machine.WDT(timeout=30000)  # 30 second timeout
+    print('Watchdog timer initialized (30s timeout)')
+
     graphics.set_font("bitmap6")
     graphics.set_pen(PURPLE)
     graphics.text('WLAN:', 0, 0, scale=1)
@@ -374,7 +380,10 @@ def main():
     graphics.text(secrets.WIFI_SSID, 0, 8, scale=1)
     cosmic.update(graphics)
 
+    wdt.feed()  # Feed watchdog before network operations
+
     wlan, conninfo = start_wifi()
+    wdt.feed()  # Feed watchdog after WiFi connection
 
     draw_scrolling_text_with_borders(conninfo, PURPLE, ORANGE, ORANGE)
     clear(FADE)
@@ -383,11 +392,16 @@ def main():
     weather = None  # Initialize weather to None
 
     while True:
+        # Feed watchdog at the start of each loop iteration
+        wdt.feed()
+
         draw_image('slonik', random_transition())
+        wdt.feed()  # Feed after image display
 
         # Get the weather, or sleep while displaying the first image
         if time.time() > last_weather + 300:
             new_weather = get_weather(wlan)
+            wdt.feed()  # Feed after weather fetch
             if new_weather is not None:
                 weather = new_weather  # Update only if successful
                 last_weather = time.time()
@@ -399,8 +413,10 @@ def main():
             time.sleep(2.0)
 
         clear(random_transition())
+        wdt.feed()  # Feed after clear
 
         draw_scrolling_text_with_borders('PostgreSQL', PG_LIGHT_BLUE, PG_BASE_BLUE, PG_DARK_BLUE)
+        wdt.feed()  # Feed after scrolling text
         clear(FADE)
 
         # Only display weather if we have valid data
@@ -411,12 +427,14 @@ def main():
                     weather['location']['name'],
                     weather['current']['condition']['text']),
                     ORANGE, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
+                wdt.feed()  # Feed after weather display
 
                 # Temperature
                 draw_scrolling_text_with_icon('Temperature: {}C, feels like: {}C'.format(
                     weather['current']['temp_c'],
                     weather['current']['feelslike_c']),
                     PURPLE, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
+                wdt.feed()  # Feed after temperature display
 
                 # Wind
                 draw_scrolling_text_with_icon('Wind: {}MPH {}, gusts: {}MPH'.format(
@@ -424,12 +442,14 @@ def main():
                     weather['current']['wind_dir'],
                     weather['current']['gust_mph']),
                     GREEN, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
+                wdt.feed()  # Feed after wind display
 
                 # Precipitation
                 draw_scrolling_text_with_icon('Precipitation: {}mm, UV: {}'.format(
                     weather['current']['precip_mm'],
                     weather['current']['uv']),
                     BLUE, get_weather_icon(weather['current']['condition']['icon'], weather['current']['is_day']))
+                wdt.feed()  # Feed after precipitation display
                 clear(FADE)
             except Exception as e:
                 print('Error displaying weather:', e)
@@ -440,19 +460,26 @@ def main():
 
         # Clean up memory after weather display
         gc.collect()
+        wdt.feed()  # Feed after garbage collection
 
         draw_image('pgedge', random_transition())
+        wdt.feed()  # Feed after pgEdge image
         time.sleep(2.0)
         clear(random_transition())
+        wdt.feed()  # Feed after clear
 
         draw_scrolling_text_with_borders('pgEdge', PGE_LIGHT_TEAL, PGE_BASE_TEAL, PGE_DARK_TEAL)
+        wdt.feed()  # Feed after pgEdge text
         clear(FADE)
 
         draw_image('pod', random_transition())
+        wdt.feed()  # Feed after pod image
         time.sleep(2.0)
         clear(random_transition())
+        wdt.feed()  # Feed after clear
 
         draw_scrolling_text_with_borders('TenaciousDD', TDD_BASE_GREEN, TDD_LIGHT_GREEN, TDD_DARK_GREEN)
+        wdt.feed()  # Feed after TenaciousDD text
         clear(FADE)
 
 
